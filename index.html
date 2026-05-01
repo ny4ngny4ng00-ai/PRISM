@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRISM - Identity Studio</title>
+    <!-- 이미지 저장을 위한 라이브러리 -->
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Syncopate:wght@400;700&display=swap');
+
+        :root {
+            --card-bg: #101416;
+            --card-accent: #5ab3b8;
+            --site-accent: #5ab3b8;
+            --label-color: #555c63;
+            --value-color: #ecf0f1;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            background: radial-gradient(circle at center, #1a2634 0%, #0a0e14 100%);
+            display: flex; flex-direction: column;
+            font-family: 'Roboto', sans-serif; color: white;
+            min-height: 100vh; overflow-x: hidden;
+        }
+
+        /* 배경 그리드 디자인 */
+        body::before {
+            content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: 
+                linear-gradient(rgba(90, 179, 184, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(90, 179, 184, 0.03) 1px, transparent 1px);
+            background-size: 30px 30px; z-index: -1;
+        }
+
+        .site-header { text-align: center; padding: 40px 0 20px 0; }
+        .site-header h1 {
+            font-family: 'Syncopate', sans-serif; font-size: 2rem;
+            letter-spacing: 15px; margin: 0;
+            background: linear-gradient(to right, var(--site-accent), #fff);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+
+        .main-container { display: flex; justify-content: center; align-items: flex-start; gap: 50px; padding: 20px; flex-wrap: wrap; }
+
+        /* 컨트롤 패널 */
+        .controls {
+            background: rgba(16, 20, 22, 0.8); backdrop-filter: blur(15px);
+            padding: 30px; border-radius: 24px; display: flex; flex-direction: column; gap: 15px;
+            width: 300px; border: 1px solid rgba(90, 179, 184, 0.2); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .controls label { font-size: 11px; font-weight: 700; color: var(--site-accent); margin-bottom: 5px; display: block; text-transform: uppercase; letter-spacing: 1px; }
+        .controls input { background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 255, 255, 0.1); color: #fff; padding: 12px; width: 100%; border-radius: 8px; box-sizing: border-box; margin-bottom: 5px; }
+
+        .save-btn {
+            background: var(--site-accent); color: #101416; border: none; padding: 18px;
+            font-weight: 900; font-size: 16px; border-radius: 12px; cursor: pointer;
+            transition: all 0.3s; text-transform: uppercase; margin-top: 10px;
+        }
+        .save-btn:hover { background: #fff; transform: scale(1.02); }
+
+        /* --------------------------------------------------
+           카드 디자인 (832x1216 세로 비율 적용)
+        ----------------------------------------------------- */
+        #capture-area { padding: 10px; background-color: transparent; }
+
+        .card {
+            width: 340px; 
+            background-color: var(--card-bg); border-radius: 20px;
+            padding: 0 0 40px 0;
+            position: relative; box-shadow: 0 30px 60px rgba(0,0,0,0.8);
+            overflow: hidden;
+        }
+
+        .top-stripe {
+            width: 100%; height: 12px;
+            background-color: var(--card-accent);
+            margin-bottom: 30px;
+        }
+
+        .card-content { padding: 0 35px; }
+
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px; }
+        .title-main { font-size: 28px; font-weight: 700; letter-spacing: 4px; margin: 0; color: var(--value-color); }
+        .title-sub { font-size: 9px; letter-spacing: 1px; color: var(--label-color); margin-top: 3px; }
+        
+        .rank-circle { 
+            width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--card-accent); 
+            display: flex; align-items: center; justify-content: center; 
+            font-weight: 700; font-size: 18px; color: var(--card-accent); 
+        }
+
+        /* 832:1216 비율 (가로 160px : 세로 234px) */
+        .image-container { 
+            width: 160px; height: 234px; 
+            border: 1px solid var(--label-color); margin: 0 auto 30px auto; position: relative; 
+            overflow: hidden; display: flex; align-items: center; justify-content: center; 
+            background-color: #000;
+        }
+        
+        #profile-img { 
+            width: 100%; height: 100%; 
+            object-fit: cover; /* 비율이 일치하므로 꽉 채움 */
+        }
+        
+        .deco { position: absolute; width: 8px; height: 8px; border: 2px solid var(--card-accent); }
+        .tl { top: 6px; left: 6px; border-right: 0; border-bottom: 0; }
+        .br { bottom: 6px; right: 6px; border-left: 0; border-top: 0; }
+
+        .info-grid { display: grid; grid-template-columns: 1fr; gap: 15px; margin-bottom: 25px; }
+        .info-item { border-left: 3px solid var(--card-accent); padding-left: 12px; }
+        .info-label { font-size: 10px; color: var(--label-color); margin-bottom: 3px; }
+        .info-value { font-size: 18px; font-weight: 700; color: var(--value-color); }
+        
+        .footer { border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px; }
+        .footer-text { font-size: 9px; color: var(--label-color); margin: 2px 0; }
+        .footer-bar { width: 55px; height: 16px; margin-top: 8px; display: flex; gap: 2px; opacity: 0.8; }
+        .bar-chunk { background-color: var(--card-accent); height: 100%; }
+
+    </style>
+</head>
+<body>
+
+    <header class="site-header">
+        <h1>PRISM STUDIO</h1>
+    </header>
+
+    <div class="main-container">
+        <!-- 설정 도구 모음 -->
+        <div class="controls">
+            <div>
+                <label>사진 업로드 (832x1216)</label>
+                <input type="file" id="in-img" accept="image/*">
+            </div>
+            <div>
+                <label>테마 컬러</label>
+                <input type="color" id="in-color" value="#5ab3b8">
+            </div>
+            <div>
+                <label>RANK 알파벳</label>
+                <input type="text" id="in-rank" value="S" maxlength="1">
+            </div>
+            <div>
+                <label>등급 및 타입</label>
+                <input type="text" id="in-v1" value="S / C-TYPE">
+            </div>
+            <div>
+                <label>코드네임</label>
+                <input type="text" id="in-v2" value="ADAM">
+            </div>
+            <button class="save-btn" onclick="saveCard()">카드 저장 (PNG)</button>
+        </div>
+
+        <!-- 실제 카드 출력 영역 -->
+        <div id="capture-area">
+            <div class="card">
+                <div class="top-stripe"></div>
+                <div class="card-content">
+                    <div class="card-header">
+                        <div>
+                            <h1 class="title-main">PRISM</h1>
+                            <div class="title-sub">GENETIC CUSTODY DIVISION</div>
+                        </div>
+                        <div class="rank-circle" id="out-rank">S</div>
+                    </div>
+
+                    <div class="image-container">
+                        <!-- 업로드된 사진이 여기에 표시됨 -->
+                        <img src="" id="profile-img" style="display: none;">
+                        <div class="deco tl"></div>
+                        <div class="deco br"></div>
+                    </div>
+
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <div class="info-label">RANK / TYPE</div>
+                            <div class="info-value" id="out-v1">S / C-TYPE</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">CODENAMES</div>
+                            <div class="info-value" id="out-v2">ADAM</div>
+                        </div>
+                    </div>
+
+                    <div class="footer">
+                        <div class="footer-text" id="out-verification">VERIFICATION: [ASSET_S / C-TYPE-ADAM]</div>
+                        <div class="footer-text">GENETIC STABILITY MONITORING: ACTIVE</div>
+                        <div class="footer-bar">
+                            <div class="bar-chunk" style="width: 4px;"></div>
+                            <div class="bar-chunk" style="width: 2px;"></div>
+                            <div class="bar-chunk" style="width: 8px;"></div>
+                            <div class="bar-chunk" style="width: 4px;"></div>
+                            <div class="bar-chunk" style="width: 12px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 1. 컬러 실시간 변경
+        document.getElementById('in-color').addEventListener('input', (e) => {
+            document.documentElement.style.setProperty('--card-accent', e.target.value);
+            document.documentElement.style.setProperty('--site-accent', e.target.value);
+        });
+
+        // 2. 하단 인증 문구 자동 업데이트
+        function updateVerification() {
+            const v1 = document.getElementById('in-v1').value.toUpperCase();
+            const v2 = document.getElementById('in-v2').value.toUpperCase();
+            document.getElementById('out-verification').innerText = `VERIFICATION: [ASSET_${v1}-${v2}]`;
+        }
+
+        // 3. 텍스트 실시간 동기화
+        const syncText = (inId, outId) => {
+            document.getElementById(inId).addEventListener('input', (e) => {
+                document.getElementById(outId).innerText = e.target.value.toUpperCase();
+                updateVerification();
+            });
+        };
+
+        syncText('in-rank', 'out-rank');
+        syncText('in-v1', 'out-v1');
+        syncText('in-v2', 'out-v2');
+
+        // 4. 사진 업로드 및 처리
+        document.getElementById('in-img').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = document.getElementById('profile-img');
+                    img.src = event.target.result;
+                    img.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // 5. 이미지 저장 기능
+        function saveCard() {
+            const target = document.getElementById('capture-area');
+            html2canvas(target, {
+                backgroundColor: null,
+                useCORS: true,
+                scale: 3 // 고화질 저장
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'PRISM-ID-CARD.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        }
+    </script>
+</body>
+</html>
